@@ -43,30 +43,30 @@
           "ticker": "NFLX",
           "qty": 140,
           "price": 95.31,
-          "value": 13343.40
+          "value": 13343.4
         },
         {
           "ticker": "PLTR",
           "qty": 40,
           "price": 150.95,
-          "value": 6038.00
+          "value": 6038.0
         }
       ]
     },
     "crypto": {
       "label": "암호화폐",
-      "amount": 96345.60,
+      "amount": 96345.6,
       "color": "#FCAD70",
       "holdings": {
         "BTC": {
           "qty": 1,
           "price": 73734,
-          "value": 73734.00
+          "value": 73734.0
         },
         "ETH": {
           "qty": 10,
           "price": 2261.16,
-          "value": 22611.60
+          "value": 22611.6
         }
       }
     },
@@ -82,15 +82,302 @@
     }
   },
   "milestones": [
-    { "year": 2000, "label": "첫 주식 시작" },
-    { "year": 2014, "label": "첫 부동산 구매" },
-    { "year": 2016, "label": "첫 코인거래 시작" },
-    { "year": 2020, "label": "첫 미국주식 시작" }
+    {
+      "year": 2000,
+      "label": "첫 주식 시작"
+    },
+    {
+      "year": 2014,
+      "label": "첫 부동산 구매"
+    },
+    {
+      "year": 2016,
+      "label": "첫 코인거래 시작"
+    },
+    {
+      "year": 2020,
+      "label": "첫 미국주식 시작"
+    }
   ],
   "history": [
     {
+      "date": "2026-02-14",
+      "total": 649106.83,
+      "cash": 1000,
+      "stocks": 155661.63,
+      "crypto": 91961.2,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-15",
+      "total": 646427.77,
+      "cash": 1000,
+      "stocks": 153164.76,
+      "crypto": 91779.01,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-16",
+      "total": 645384.57,
+      "cash": 1000,
+      "stocks": 155668.44,
+      "crypto": 88232.13,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-17",
+      "total": 656930.49,
+      "cash": 1000,
+      "stocks": 153544.19,
+      "crypto": 101902.3,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-18",
+      "total": 656531.16,
+      "cash": 1000,
+      "stocks": 161922.8,
+      "crypto": 93124.36,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-19",
+      "total": 661013.62,
+      "cash": 1000,
+      "stocks": 157221.35,
+      "crypto": 102308.27,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-20",
+      "total": 659408.63,
+      "cash": 1000,
+      "stocks": 154311.41,
+      "crypto": 103613.22,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-21",
+      "total": 660619.76,
+      "cash": 1000,
+      "stocks": 160689.54,
+      "crypto": 98446.22,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-22",
+      "total": 651628.66,
+      "cash": 1000,
+      "stocks": 156710.25,
+      "crypto": 93434.41,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-23",
+      "total": 665370.1,
+      "cash": 1000,
+      "stocks": 165928.83,
+      "crypto": 97957.27,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-24",
+      "total": 659274.99,
+      "cash": 1000,
+      "stocks": 164852.06,
+      "crypto": 92938.93,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-25",
+      "total": 649375.2,
+      "cash": 1000,
+      "stocks": 153628.2,
+      "crypto": 94263.0,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-26",
+      "total": 659559.31,
+      "cash": 1000,
+      "stocks": 158954.23,
+      "crypto": 99121.08,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-27",
+      "total": 662292.24,
+      "cash": 1000,
+      "stocks": 163137.0,
+      "crypto": 97671.24,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-02-28",
+      "total": 656170.64,
+      "cash": 1000,
+      "stocks": 160257.43,
+      "crypto": 94429.21,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-01",
+      "total": 652998.24,
+      "cash": 1000,
+      "stocks": 157861.65,
+      "crypto": 93652.59,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-02",
+      "total": 653446.11,
+      "cash": 1000,
+      "stocks": 159644.06,
+      "crypto": 92318.05,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-03",
+      "total": 652420.84,
+      "cash": 1000,
+      "stocks": 158662.53,
+      "crypto": 92274.31,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-04",
+      "total": 657594.81,
+      "cash": 1000,
+      "stocks": 163420.13,
+      "crypto": 92690.68,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-05",
+      "total": 662238.41,
+      "cash": 1000,
+      "stocks": 163950.44,
+      "crypto": 96803.97,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-06",
+      "total": 654326.21,
+      "cash": 1000,
+      "stocks": 160487.99,
+      "crypto": 92354.22,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-07",
+      "total": 660369.18,
+      "cash": 1000,
+      "stocks": 159377.44,
+      "crypto": 99507.74,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-08",
+      "total": 658864.34,
+      "cash": 1000,
+      "stocks": 163374.03,
+      "crypto": 94006.31,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-09",
+      "total": 656461.78,
+      "cash": 1000,
+      "stocks": 158502.41,
+      "crypto": 96475.37,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-10",
+      "total": 657059.66,
+      "cash": 1000,
+      "stocks": 156385.48,
+      "crypto": 99190.18,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-11",
+      "total": 659080.36,
+      "cash": 1000,
+      "stocks": 160971.63,
+      "crypto": 96624.73,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-12",
+      "total": 657207.11,
+      "cash": 1000,
+      "stocks": 159106.1,
+      "crypto": 96617.01,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-13",
+      "total": 661157.3,
+      "cash": 1000,
+      "stocks": 161196.93,
+      "crypto": 98476.37,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-14",
+      "total": 652866.55,
+      "cash": 1000,
+      "stocks": 157398.43,
+      "crypto": 93984.12,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-03-15",
+      "total": 662979.26,
+      "cash": 1000,
+      "stocks": 162614.49,
+      "crypto": 98880.77,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
       "date": "2026-03-16",
-      "total": 657388.12
+      "total": 657388.12,
+      "cash": 1000,
+      "stocks": 159558.52,
+      "crypto": 96345.6,
+      "realestate": 333737,
+      "pension": 66747
     }
   ],
   "lastUpdated": "2026-03-16"

@@ -181,10 +181,36 @@
       padding: 24px;
       border: 1px solid #2a2a4a;
     }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
     .history-card h3 {
       font-size: 0.95rem;
       color: #aaa;
-      margin-bottom: 16px;
+    }
+    .tab-group {
+      display: flex;
+      gap: 4px;
+      background: #2a2a4a;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .tab {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: #667eea;
+      color: #fff;
     }
     .history-chart-wrapper {
       position: relative;
@@ -230,7 +256,13 @@
 
     <!-- History -->
     <div class="history-card">
-      <h3>자산 추이</h3>
+      <div class="history-header">
+        <h3>자산 추이</h3>
+        <div class="tab-group">
+          <button class="tab active" data-range="1m">1M</button>
+          <button class="tab" data-range="all">All</button>
+        </div>
+      </div>
       <div class="history-chart-wrapper">
         <canvas id="historyChart"></canvas>
       </div>
@@ -305,7 +337,8 @@
         compLegend.appendChild(item);
       });
 
-      // Generate monthly historical data
+      // Chart state
+      let historyChart = null;
       const milestones = data.milestones || [];
       const currentStocks = assets.stocks.amount;
       const currentCrypto = assets.crypto.amount;
@@ -321,211 +354,150 @@
         return y + '-' + String(m + 1).padStart(2, '0');
       }
 
-      const endIdx = monthIdx(2026, 2); // 2026-03 (0-indexed month 2)
-      const totalMonths = endIdx + 1;
+      function buildAllData() {
+        const endIdx = monthIdx(2026, 2);
+        const totalMonths = endIdx + 1;
+        const labels = [], cash = [], stock = [], crypto = [], re = [], pen = [];
 
-      const cashData = [];
-      const stockData = [];
-      const cryptoData = [];
-      const realestateData = [];
-      const pensionData = [];
-      const timeLabels = [];
+        for (let i = 0; i < totalMonths; i++) {
+          labels.push(toLabel(i));
+          cash.push(cashAmount);
 
-      for (let i = 0; i < totalMonths; i++) {
-        timeLabels.push(toLabel(i));
+          const sStart = monthIdx(2000, 0), sGrow1 = monthIdx(2017, 0);
+          const sPeak = monthIdx(2017, 5), sCrash = monthIdx(2018, 5);
+          let sv = 0;
+          if (i <= sGrow1) sv = lerp(1000, 30000, (i - sStart) / (sGrow1 - sStart));
+          else if (i <= sPeak) sv = lerp(30000, 300000, (i - sGrow1) / (sPeak - sGrow1));
+          else if (i <= sCrash) sv = lerp(300000, 30000, (i - sPeak) / (sCrash - sPeak));
+          else sv = lerp(30000, currentStocks, (i - sCrash) / (endIdx - sCrash));
+          stock.push(Math.round(sv));
 
-        // Cash: constant
-        cashData.push(cashAmount);
+          const cStart = monthIdx(2016, 0);
+          crypto.push(i >= cStart ? Math.round(lerp(500, currentCrypto, (i - cStart) / (endIdx - cStart))) : 0);
 
-        // Stocks: 2000-01 start $1,000
-        // Gradual growth to $30,000 by 2017-01
-        // 2017-06 spike to $300,000
-        // 2018-06 crash to $30,000
-        // 2018-06 to 2026-03 steady growth to current
-        const sStart = monthIdx(2000, 0);
-        const sGrow1 = monthIdx(2017, 0);
-        const sPeak = monthIdx(2017, 5);
-        const sCrash = monthIdx(2018, 5);
-        const sEnd = endIdx;
-        let sv = 0;
-        if (i < sStart) { sv = 0; }
-        else if (i <= sGrow1) { sv = lerp(1000, 30000, (i - sStart) / (sGrow1 - sStart)); }
-        else if (i <= sPeak) { sv = lerp(30000, 300000, (i - sGrow1) / (sPeak - sGrow1)); }
-        else if (i <= sCrash) { sv = lerp(300000, 30000, (i - sPeak) / (sCrash - sPeak)); }
-        else { sv = lerp(30000, currentStocks, (i - sCrash) / (sEnd - sCrash)); }
-        stockData.push(Math.round(sv));
+          const rStart = monthIdx(2014, 0);
+          re.push(i >= rStart ? Math.round(lerp(270000, currentRealestate, (i - rStart) / (endIdx - rStart))) : 0);
 
-        // Crypto: 2016-01 start small, steady growth to current
-        const cStart = monthIdx(2016, 0);
-        let cv = 0;
-        if (i >= cStart) {
-          cv = lerp(500, currentCrypto, (i - cStart) / (endIdx - cStart));
+          const pStart = monthIdx(2000, 0);
+          if (i >= pStart) {
+            const t = (i - pStart) / (endIdx - pStart);
+            const totalYears = (endIdx - pStart) / 12;
+            const elapsed = t * totalYears;
+            pen.push(Math.round(currentPension * (Math.pow(1.07, elapsed) - 1) / (Math.pow(1.07, totalYears) - 1)));
+          } else { pen.push(0); }
         }
-        cryptoData.push(Math.round(cv));
-
-        // Real estate: 2014-01 purchase at $270,000, grow to current
-        const rStart = monthIdx(2014, 0);
-        let rv = 0;
-        if (i >= rStart) {
-          rv = lerp(270000, currentRealestate, (i - rStart) / (endIdx - rStart));
-        }
-        realestateData.push(Math.round(rv));
-
-        // Pension: compound growth from 2000 to current (~7% annual)
-        const pStart = monthIdx(2000, 0);
-        let pv = 0;
-        if (i >= pStart) {
-          const t = (i - pStart) / (endIdx - pStart); // 0 to 1
-          // Exponential curve: slow start, accelerating growth
-          const annualRate = 0.07;
-          const totalYears = (endIdx - pStart) / 12;
-          const elapsed = t * totalYears;
-          pv = currentPension * (Math.pow(1 + annualRate, elapsed) - 1) / (Math.pow(1 + annualRate, totalYears) - 1);
-        }
-        pensionData.push(Math.round(pv));
+        const total = cash.map((v, i) => v + stock[i] + crypto[i] + re[i] + pen[i]);
+        return { labels, cash, stock, crypto, re, pen, total };
       }
 
-      // Milestone annotations
-      const MILESTONE_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63'];
-      const annotations = {};
-      milestones.forEach((m, i) => {
-        const idx = monthIdx(m.year, 0);
-        const color = MILESTONE_COLORS[i % MILESTONE_COLORS.length];
-        annotations['line' + i] = {
-          type: 'line',
-          xMin: idx,
-          xMax: idx,
-          borderColor: color,
-          borderWidth: 2,
-          borderDash: [6, 4],
-          label: {
-            display: true,
-            content: m.label,
-            position: 'start',
-            backgroundColor: color,
-            color: '#fff',
-            font: { size: 10, weight: 'bold' },
-            padding: { top: 3, bottom: 3, left: 6, right: 6 },
-            borderRadius: 4,
-            yAdjust: i % 2 === 0 ? -10 : 20
-          }
-        };
-      });
-      // Goal line
-      annotations['goalLine'] = {
-        type: 'line',
-        yMin: goal.amount,
-        yMax: goal.amount,
-        borderColor: 'rgba(255, 82, 82, 0.6)',
-        borderWidth: 2,
-        borderDash: [8, 4],
-        label: {
-          display: true,
-          content: 'GOAL 100%',
-          position: 'end',
-          backgroundColor: 'rgba(255, 82, 82, 0.8)',
-          color: '#fff',
-          font: { size: 11 },
-          padding: { top: 3, bottom: 3, left: 6, right: 6 },
-          borderRadius: 4
+      function build1MData() {
+        const h = history || [];
+        const labels = [], cash = [], stock = [], crypto = [], re = [], pen = [], total = [];
+        h.forEach(entry => {
+          labels.push(entry.date.substring(5)); // MM-DD
+          total.push(entry.total);
+          cash.push(entry.cash != null ? entry.cash : cashAmount);
+          stock.push(entry.stocks != null ? entry.stocks : currentStocks);
+          crypto.push(entry.crypto != null ? entry.crypto : currentCrypto);
+          re.push(entry.realestate != null ? entry.realestate : currentRealestate);
+          pen.push(entry.pension != null ? entry.pension : currentPension);
+        });
+        return { labels, cash, stock, crypto, re, pen, total };
+      }
+
+      function createChart(mode) {
+        if (historyChart) { historyChart.destroy(); }
+        const isAll = mode === 'all';
+        const d = isAll ? buildAllData() : build1MData();
+
+        const annotations = {};
+        if (isAll) {
+          const MILESTONE_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63'];
+          milestones.forEach((m, i) => {
+            const idx = monthIdx(m.year, 0);
+            const color = MILESTONE_COLORS[i % MILESTONE_COLORS.length];
+            annotations['line' + i] = {
+              type: 'line', xMin: idx, xMax: idx,
+              borderColor: color, borderWidth: 2, borderDash: [6, 4],
+              label: {
+                display: true, content: m.label, position: 'end',
+                backgroundColor: color, color: '#fff',
+                font: { size: 10, weight: 'bold' },
+                padding: { top: 3, bottom: 3, left: 6, right: 6 },
+                borderRadius: 4,
+                yAdjust: -(20 + i * 22)
+              }
+            };
+          });
+          annotations['goalLine'] = {
+            type: 'line', yMin: goal.amount, yMax: goal.amount,
+            borderColor: 'rgba(255, 82, 82, 0.6)', borderWidth: 2, borderDash: [8, 4],
+            label: {
+              display: true, content: 'GOAL 100%', position: 'end',
+              backgroundColor: 'rgba(255, 82, 82, 0.8)', color: '#fff',
+              font: { size: 11 }, padding: { top: 3, bottom: 3, left: 6, right: 6 }, borderRadius: 4
+            }
+          };
         }
-      };
 
-      // Total line data
-      const totalData = cashData.map((v, i) => v + stockData[i] + cryptoData[i] + realestateData[i] + pensionData[i]);
-
-      new Chart(document.getElementById('historyChart'), {
-        type: 'line',
-        data: {
-          labels: timeLabels,
-          datasets: [
-            {
-              label: 'Total',
-              data: totalData,
-              borderColor: '#667eea',
-              backgroundColor: 'rgba(102, 126, 234, 0.08)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 3
-            },
-            {
-              label: '부동산',
-              data: realestateData,
-              borderColor: assets.realestate.color,
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 1.5,
-              fill: false
-            },
-            {
-              label: '주식',
-              data: stockData,
-              borderColor: assets.stocks.color,
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 1.5,
-              fill: false
-            },
-            {
-              label: '암호화폐',
-              data: cryptoData,
-              borderColor: assets.crypto.color,
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 1.5,
-              fill: false
-            },
-            {
-              label: '연금',
-              data: pensionData,
-              borderColor: assets.pension ? assets.pension.color : '#78D9E8',
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 1.5,
-              fill: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            x: {
-              ticks: {
-                color: '#888',
-                maxRotation: 45,
-                callback: function(val, idx) {
-                  const lbl = this.getLabelForValue(idx);
-                  if (!lbl) return '';
-                  return lbl.endsWith('-01') ? lbl.substring(0, 4) : '';
-                },
-                maxTicksLimit: 14
-              },
-              grid: { color: '#2a2a4a' }
-            },
-            y: {
-              min: 0,
-              ticks: { color: '#888', callback: v => goal.amount > 0 ? Math.round(v / goal.amount * 100) + '%' : v },
-              grid: { color: '#2a2a4a' }
-            }
+        historyChart = new Chart(document.getElementById('historyChart'), {
+          type: 'line',
+          data: {
+            labels: d.labels,
+            datasets: [
+              { label: 'Total', data: d.total, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.08)', fill: true, tension: 0.3, pointRadius: isAll ? 0 : 3, borderWidth: 3 },
+              { label: assets.realestate.label, data: d.re, borderColor: assets.realestate.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
+              { label: assets.stocks.label, data: d.stock, borderColor: assets.stocks.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
+              { label: assets.crypto.label, data: d.crypto, borderColor: assets.crypto.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
+              { label: assets.pension.label, data: d.pen, borderColor: assets.pension.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false }
+            ]
           },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#aaa', padding: 12, font: { size: 11 } }
-            },
-            tooltip: {
-              callbacks: {
-                title: ctx => ctx[0].label,
-                label: ctx => ctx.dataset.label + ': ' + (goal.amount > 0 ? (ctx.raw / goal.amount * 100).toFixed(1) : 0) + '%'
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            layout: { padding: { top: isAll ? 10 : 0 } },
+            scales: {
+              x: {
+                ticks: {
+                  color: '#888', maxRotation: 45,
+                  callback: isAll
+                    ? function(val, idx) { const lbl = this.getLabelForValue(idx); return lbl && lbl.endsWith('-01') ? lbl.substring(0, 4) : ''; }
+                    : function(val, idx) { return this.getLabelForValue(idx); },
+                  maxTicksLimit: isAll ? 14 : 10
+                },
+                grid: { color: '#2a2a4a' }
+              },
+              y: {
+                min: 0,
+                ticks: { color: '#888', callback: v => goal.amount > 0 ? Math.round(v / goal.amount * 100) + '%' : v },
+                grid: { color: '#2a2a4a' }
               }
             },
-            annotation: { annotations }
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#aaa', padding: 12, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  title: ctx => ctx[0].label,
+                  label: ctx => ctx.dataset.label + ': ' + (goal.amount > 0 ? (ctx.raw / goal.amount * 100).toFixed(1) : 0) + '%'
+                }
+              },
+              annotation: { annotations }
+            }
           }
-        }
+        });
+      }
+
+      // Tab switching
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          createChart(btn.dataset.range);
+        });
       });
+
+      // Default: 1M view
+      createChart('1m');
 
       document.getElementById('lastUpdated').textContent = '마지막 업데이트: ' + lastUpdated;
     }
