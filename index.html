@@ -166,7 +166,7 @@
     .history-chart-wrapper {
       position: relative;
       width: 100%;
-      height: 300px;
+      height: 400px;
     }
 
     .updated {
@@ -336,31 +336,76 @@
         }
       });
 
-      // Timeline chart with milestones
+      // Generate monthly historical data
       const milestones = data.milestones || [];
-      const currentYear = new Date().getFullYear();
+      const currentStocks = assets.stocks.amount;
+      const currentCrypto = assets.crypto.amount;
+      const currentRealestate = assets.realestate.amount;
+      const cashAmount = assets.cash.amount;
 
-      // Build timeline: yearly from 2000 to current year
-      const timelineLabels = [];
-      const timelineData = [];
-      for (let y = 2000; y <= currentYear; y++) {
-        timelineLabels.push(String(y));
-        // Find history entry for this year
-        const entry = history.find(h => h.date.startsWith(String(y)));
-        if (y === currentYear && !entry) {
-          timelineData.push(total);
-        } else if (entry) {
-          timelineData.push(entry.total);
-        } else {
-          timelineData.push(null);
-        }
+      function lerp(a, b, t) { return a + (b - a) * t; }
+      function monthIdx(y, m) { return (y - 2000) * 12 + m; }
+      function toLabel(idx) {
+        const y = 2000 + Math.floor(idx / 12);
+        const m = idx % 12;
+        return y + '-' + String(m + 1).padStart(2, '0');
       }
 
-      // Build annotation lines for milestones
-      const MILESTONE_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0'];
+      const endIdx = monthIdx(2026, 2); // 2026-03 (0-indexed month 2)
+      const totalMonths = endIdx + 1;
+
+      const cashData = [];
+      const stockData = [];
+      const cryptoData = [];
+      const realestateData = [];
+      const labels = [];
+
+      for (let i = 0; i < totalMonths; i++) {
+        labels.push(toLabel(i));
+
+        // Cash: constant
+        cashData.push(cashAmount);
+
+        // Stocks: 2000-01 start $1,000
+        // Gradual growth to $30,000 by 2017-01
+        // 2017-06 spike to $300,000
+        // 2018-06 crash to $30,000
+        // 2018-06 to 2026-03 steady growth to current
+        const sStart = monthIdx(2000, 0);
+        const sGrow1 = monthIdx(2017, 0);
+        const sPeak = monthIdx(2017, 5);
+        const sCrash = monthIdx(2018, 5);
+        const sEnd = endIdx;
+        let sv = 0;
+        if (i < sStart) { sv = 0; }
+        else if (i <= sGrow1) { sv = lerp(1000, 30000, (i - sStart) / (sGrow1 - sStart)); }
+        else if (i <= sPeak) { sv = lerp(30000, 300000, (i - sGrow1) / (sPeak - sGrow1)); }
+        else if (i <= sCrash) { sv = lerp(300000, 30000, (i - sPeak) / (sCrash - sPeak)); }
+        else { sv = lerp(30000, currentStocks, (i - sCrash) / (sEnd - sCrash)); }
+        stockData.push(Math.round(sv));
+
+        // Crypto: 2016-01 start small, steady growth to current
+        const cStart = monthIdx(2016, 0);
+        let cv = 0;
+        if (i >= cStart) {
+          cv = lerp(500, currentCrypto, (i - cStart) / (endIdx - cStart));
+        }
+        cryptoData.push(Math.round(cv));
+
+        // Real estate: 2014-01 purchase at $270,000, grow to current
+        const rStart = monthIdx(2014, 0);
+        let rv = 0;
+        if (i >= rStart) {
+          rv = lerp(270000, currentRealestate, (i - rStart) / (endIdx - rStart));
+        }
+        realestateData.push(Math.round(rv));
+      }
+
+      // Milestone annotations
+      const MILESTONE_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63'];
       const annotations = {};
       milestones.forEach((m, i) => {
-        const idx = m.year - 2000;
+        const idx = monthIdx(m.year, 0);
         const color = MILESTONE_COLORS[i % MILESTONE_COLORS.length];
         annotations['line' + i] = {
           type: 'line',
@@ -375,55 +420,111 @@
             position: 'start',
             backgroundColor: color,
             color: '#fff',
-            font: { size: 11, weight: 'bold' },
-            padding: { top: 4, bottom: 4, left: 8, right: 8 },
+            font: { size: 10, weight: 'bold' },
+            padding: { top: 3, bottom: 3, left: 6, right: 6 },
             borderRadius: 4,
             yAdjust: i % 2 === 0 ? -10 : 20
           }
         };
       });
+      // Goal line
+      annotations['goalLine'] = {
+        type: 'line',
+        yMin: goal.amount,
+        yMax: goal.amount,
+        borderColor: 'rgba(255, 82, 82, 0.6)',
+        borderWidth: 2,
+        borderDash: [8, 4],
+        label: {
+          display: true,
+          content: 'GOAL ' + formatUSD(goal.amount),
+          position: 'end',
+          backgroundColor: 'rgba(255, 82, 82, 0.8)',
+          color: '#fff',
+          font: { size: 11 },
+          padding: { top: 3, bottom: 3, left: 6, right: 6 },
+          borderRadius: 4
+        }
+      };
 
       new Chart(document.getElementById('historyChart'), {
         type: 'line',
         data: {
-          labels: timelineLabels,
-          datasets: [{
-            label: '총 자산 (USD)',
-            data: timelineData,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: timelineData.map(v => v !== null ? 6 : 0),
-            pointBackgroundColor: '#667eea',
-            spanGaps: false
-          }]
+          labels: labels,
+          datasets: [
+            {
+              label: '부동산',
+              data: realestateData.map((v, i) => cashData[i] + stockData[i] + cryptoData[i] + v),
+              borderColor: assets.realestate.color,
+              backgroundColor: assets.realestate.color + '33',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            },
+            {
+              label: '암호화폐',
+              data: cryptoData.map((v, i) => cashData[i] + stockData[i] + v),
+              borderColor: assets.crypto.color,
+              backgroundColor: assets.crypto.color + '33',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            },
+            {
+              label: '주식',
+              data: stockData.map((v, i) => cashData[i] + v),
+              borderColor: assets.stocks.color,
+              backgroundColor: assets.stocks.color + '33',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            },
+            {
+              label: '현금',
+              data: cashData,
+              borderColor: assets.cash.color,
+              backgroundColor: assets.cash.color + '33',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           scales: {
             x: {
               ticks: {
                 color: '#888',
                 maxRotation: 45,
                 callback: function(val, idx) {
-                  const year = parseInt(this.getLabelForValue(idx));
-                  return year % 2 === 0 ? year : '';
-                }
+                  const lbl = this.getLabelForValue(idx);
+                  if (!lbl) return '';
+                  return lbl.endsWith('-01') ? lbl.substring(0, 4) : '';
+                },
+                maxTicksLimit: 14
               },
               grid: { color: '#2a2a4a' }
             },
             y: {
               min: 0,
+              stacked: false,
               ticks: { color: '#888', callback: v => formatUSD(v) },
               grid: { color: '#2a2a4a' }
             }
           },
           plugins: {
-            legend: { display: false },
+            legend: {
+              position: 'bottom',
+              labels: { color: '#aaa', padding: 12, font: { size: 11 } }
+            },
             tooltip: {
-              callbacks: { label: ctx => ctx.raw !== null ? formatUSD(ctx.raw) : '' }
+              callbacks: {
+                title: ctx => ctx[0].label,
+                label: ctx => ctx.dataset.label + ': ' + formatUSD(ctx.raw)
+              }
             },
             annotation: { annotations }
           }
