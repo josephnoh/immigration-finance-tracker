@@ -23,6 +23,10 @@ on:
         description: '부동산 (USD)'
         required: true
         type: string
+      pension:
+        description: '연금 (USD)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -40,6 +44,7 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           CASH=${{ github.event.inputs.cash }}
           REALESTATE=${{ github.event.inputs.realestate }}
+          PENSION=${{ github.event.inputs.pension }}
           BTC_QTY=${{ github.event.inputs.btc_qty }}
           ETH_QTY=${{ github.event.inputs.eth_qty }}
           STOCKS_INPUT="${{ github.event.inputs.stocks }}"
@@ -86,13 +91,14 @@ jobs:
           CRYPTO_TOTAL=$(printf "%.2f" "$CRYPTO_TOTAL")
           BTC_VALUE=$(printf "%.2f" "$BTC_VALUE")
           ETH_VALUE=$(printf "%.2f" "$ETH_VALUE")
-          TOTAL=$(echo "$CASH + $STOCKS_TOTAL + $CRYPTO_TOTAL + $REALESTATE" | bc)
+          TOTAL=$(echo "$CASH + $STOCKS_TOTAL + $CRYPTO_TOTAL + $REALESTATE + $PENSION" | bc)
 
           echo "=== Summary ==="
           echo "Cash: $CASH"
           echo "Stocks: $STOCKS_TOTAL"
           echo "Crypto: $CRYPTO_TOTAL"
           echo "Real Estate: $REALESTATE"
+          echo "Pension: $PENSION"
           echo "Total: $TOTAL"
 
           # Update data.json
@@ -100,6 +106,7 @@ jobs:
              --argjson stocks "$STOCKS_TOTAL" \
              --argjson crypto "$CRYPTO_TOTAL" \
              --argjson realestate "$REALESTATE" \
+             --argjson pension "$PENSION" \
              --arg date "$DATE" \
              --argjson total "$TOTAL" \
              --argjson stock_details "$STOCK_DETAILS" \
@@ -118,6 +125,7 @@ jobs:
                 "ETH": {"qty": $eth_qty, "price": $eth_price, "value": $eth_value}
               } |
               .assets.realestate.amount = $realestate |
+              .assets.pension.amount = $pension |
               .lastUpdated = $date |
               .history += [{"date": $date, "total": $total}]' \
              data.json > tmp.json && mv tmp.json data.json

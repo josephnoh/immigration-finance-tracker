@@ -8,12 +8,12 @@
     "cash": {
       "label": "현금",
       "amount": 1000,
-      "color": "#4CAF50"
+      "color": "#81C995"
     },
     "stocks": {
       "label": "주식",
       "amount": 159558.52,
-      "color": "#2196F3",
+      "color": "#7BAAF7",
       "holdings": [
         {
           "ticker": "TSLA",
@@ -56,7 +56,7 @@
     "crypto": {
       "label": "암호화폐",
       "amount": 96345.60,
-      "color": "#FF9800",
+      "color": "#FCAD70",
       "holdings": {
         "BTC": {
           "qty": 1,
@@ -73,7 +73,12 @@
     "realestate": {
       "label": "부동산",
       "amount": 333737,
-      "color": "#9C27B0"
+      "color": "#C58AF9"
+    },
+    "pension": {
+      "label": "연금",
+      "amount": 66747,
+      "color": "#78D9E8"
     }
   },
   "milestones": [

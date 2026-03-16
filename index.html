@@ -227,10 +227,11 @@
 
   <script>
     const ICONS = {
-      cash: '💵',
-      stocks: '📈',
-      crypto: '₿',
-      realestate: '🏠'
+      cash: '',
+      stocks: '',
+      crypto: '',
+      realestate: '',
+      pension: ''
     };
 
     function formatUSD(n) {
@@ -261,8 +262,9 @@
         const card = document.createElement('div');
         card.className = 'asset-card';
         const pct = goal.amount > 0 ? (asset.amount / goal.amount * 100).toFixed(1) : '0.0';
+        const icon = ICONS[key] || '';
         card.innerHTML = `
-          <div class="icon">${ICONS[key] || '💰'}</div>
+          ${icon ? '<div class="icon">' + icon + '</div>' : ''}
           <div class="label">${asset.label}</div>
           <div class="value" style="color:${asset.color}">${formatUSD(asset.amount)}</div>
           <div class="asset-percent">목표의 ${pct}%</div>
@@ -341,6 +343,7 @@
       const currentStocks = assets.stocks.amount;
       const currentCrypto = assets.crypto.amount;
       const currentRealestate = assets.realestate.amount;
+      const currentPension = assets.pension ? assets.pension.amount : 0;
       const cashAmount = assets.cash.amount;
 
       function lerp(a, b, t) { return a + (b - a) * t; }
@@ -358,6 +361,7 @@
       const stockData = [];
       const cryptoData = [];
       const realestateData = [];
+      const pensionData = [];
       const labels = [];
 
       for (let i = 0; i < totalMonths; i++) {
@@ -399,6 +403,14 @@
           rv = lerp(270000, currentRealestate, (i - rStart) / (endIdx - rStart));
         }
         realestateData.push(Math.round(rv));
+
+        // Pension: steady accumulation from 2000 to current
+        const pStart = monthIdx(2000, 0);
+        let pv = 0;
+        if (i >= pStart) {
+          pv = lerp(0, currentPension, (i - pStart) / (endIdx - pStart));
+        }
+        pensionData.push(Math.round(pv));
       }
 
       // Milestone annotations
@@ -452,6 +464,15 @@
         data: {
           labels: labels,
           datasets: [
+            {
+              label: '연금',
+              data: pensionData.map((v, i) => cashData[i] + stockData[i] + cryptoData[i] + realestateData[i] + v),
+              borderColor: assets.pension ? assets.pension.color : '#00BCD4',
+              backgroundColor: (assets.pension ? assets.pension.color : '#00BCD4') + '33',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0
+            },
             {
               label: '부동산',
               data: realestateData.map((v, i) => cashData[i] + stockData[i] + cryptoData[i] + v),
