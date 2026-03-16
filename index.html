@@ -464,55 +464,59 @@
         }
       };
 
+      // Total line data
+      const totalData = cashData.map((v, i) => v + stockData[i] + cryptoData[i] + realestateData[i] + pensionData[i]);
+
       new Chart(document.getElementById('historyChart'), {
         type: 'line',
         data: {
           labels: timeLabels,
           datasets: [
             {
-              label: '연금',
-              data: pensionData.map((v, i) => cashData[i] + stockData[i] + cryptoData[i] + realestateData[i] + v),
-              borderColor: assets.pension ? assets.pension.color : '#00BCD4',
-              backgroundColor: (assets.pension ? assets.pension.color : '#00BCD4') + '33',
+              label: 'Total',
+              data: totalData,
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.08)',
               fill: true,
               tension: 0.3,
-              pointRadius: 0
+              pointRadius: 0,
+              borderWidth: 3
             },
             {
               label: '부동산',
-              data: realestateData.map((v, i) => cashData[i] + stockData[i] + cryptoData[i] + v),
+              data: realestateData,
               borderColor: assets.realestate.color,
-              backgroundColor: assets.realestate.color + '33',
-              fill: true,
               tension: 0.3,
-              pointRadius: 0
-            },
-            {
-              label: '암호화폐',
-              data: cryptoData.map((v, i) => cashData[i] + stockData[i] + v),
-              borderColor: assets.crypto.color,
-              backgroundColor: assets.crypto.color + '33',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 0
+              pointRadius: 0,
+              borderWidth: 1.5,
+              fill: false
             },
             {
               label: '주식',
-              data: stockData.map((v, i) => cashData[i] + v),
+              data: stockData,
               borderColor: assets.stocks.color,
-              backgroundColor: assets.stocks.color + '33',
-              fill: true,
               tension: 0.3,
-              pointRadius: 0
+              pointRadius: 0,
+              borderWidth: 1.5,
+              fill: false
             },
             {
-              label: '현금',
-              data: cashData,
-              borderColor: assets.cash.color,
-              backgroundColor: assets.cash.color + '33',
-              fill: true,
+              label: '암호화폐',
+              data: cryptoData,
+              borderColor: assets.crypto.color,
               tension: 0.3,
-              pointRadius: 0
+              pointRadius: 0,
+              borderWidth: 1.5,
+              fill: false
+            },
+            {
+              label: '연금',
+              data: pensionData,
+              borderColor: assets.pension ? assets.pension.color : '#78D9E8',
+              tension: 0.3,
+              pointRadius: 0,
+              borderWidth: 1.5,
+              fill: false
             }
           ]
         },
@@ -536,7 +540,6 @@
             },
             y: {
               min: 0,
-              stacked: false,
               ticks: { color: '#888', callback: v => formatUSD(v) },
               grid: { color: '#2a2a4a' }
             }
@@ -549,17 +552,7 @@
             tooltip: {
               callbacks: {
                 title: ctx => ctx[0].label,
-                label: function(ctx) {
-                  const i = ctx.dataIndex;
-                  const vals = { '현금': cashData[i], '주식': stockData[i], '암호화폐': cryptoData[i], '부동산': realestateData[i], '연금': pensionData[i] };
-                  const v = vals[ctx.dataset.label];
-                  return v !== undefined ? ctx.dataset.label + ': ' + formatUSD(v) : '';
-                },
-                footer: function(items) {
-                  const i = items[0].dataIndex;
-                  const t = cashData[i] + stockData[i] + cryptoData[i] + realestateData[i] + pensionData[i];
-                  return 'Total: ' + formatUSD(t);
-                }
+                label: ctx => ctx.dataset.label + ': ' + formatUSD(ctx.raw)
               }
             },
             annotation: { annotations }
