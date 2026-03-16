@@ -121,11 +121,11 @@ jobs:
           git pull --rebase origin main
           git push
 
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@v5
         if: steps.changes.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v4
         if: steps.changes.outputs.changed == 'true'
         with:
           path: '.'
-      - uses: actions/deploy-pages@v5
+      - uses: actions/deploy-pages@v4
         if: steps.changes.outputs.changed == 'true'
