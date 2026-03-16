@@ -4,282 +4,366 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Immigration Finance Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f23;
-      color: #e0e0e0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #08081a;
+      color: #e2e2e2;
       min-height: 100vh;
+      padding: 48px 24px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 40px;
+    }
+    .header-left h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f0f0f0;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .header-left .subtitle {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #666;
+    }
+    .header-right {
+      font-size: 0.75rem;
+      color: #555;
+      text-align: right;
+    }
+
+    /* Card base */
+    .card {
+      background: #111128;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+      transition: border-color 0.3s;
+    }
+    .card:hover {
+      border-color: rgba(102,126,234,0.15);
+    }
+    .card-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+    }
+
+    /* Hero: Progress Ring */
+    .hero {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 20px;
+      padding: 40px 28px;
     }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .progress-ring-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin-bottom: 20px;
     }
-    .subtitle {
-      color: #888;
-      font-size: 0.9rem;
-      margin-bottom: 40px;
+    .progress-ring-wrap svg {
+      transform: rotate(-90deg);
     }
-    .container {
-      max-width: 800px;
-      width: 100%;
+    .ring-bg {
+      fill: none;
+      stroke: #1e1e3a;
+      stroke-width: 10;
     }
-
-    /* Main Progress */
-    .main-progress {
-      background: #1a1a2e;
-      border-radius: 20px;
-      padding: 40px;
-      margin-bottom: 30px;
+    .ring-fill {
+      fill: none;
+      stroke: url(#ringGradient);
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.5s ease-out;
+      filter: drop-shadow(0 0 8px rgba(102,126,234,0.4));
+    }
+    .ring-percent {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       text-align: center;
-      border: 1px solid #2a2a4a;
     }
-    .percent-display {
-      font-size: 5rem;
+    .ring-percent .value {
+      font-size: 2.8rem;
       font-weight: 800;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #f0f0f0;
+      letter-spacing: -0.03em;
       line-height: 1;
-      margin-bottom: 8px;
     }
-    .amount-display {
-      font-size: 1.1rem;
-      color: #aaa;
-      margin-bottom: 24px;
+    .ring-percent .label {
+      font-size: 0.7rem;
+      color: #666;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
     }
-    .amount-display .current {
-      color: #667eea;
-      font-weight: 600;
-    }
-    .progress-bar-container {
-      background: #2a2a4a;
-      border-radius: 12px;
-      height: 24px;
+    .amount-display { display: none; }
+
+    /* KPI Stats Row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      margin-bottom: 20px;
+      background: #111128;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 16px;
       overflow: hidden;
-      position: relative;
+      transition: border-color 0.3s;
     }
-    .progress-bar-fill {
-      height: 100%;
-      border-radius: 12px;
-      background: linear-gradient(90deg, #667eea, #764ba2);
-      transition: width 1.5s ease-out;
-      position: relative;
+    .kpi-row:hover {
+      border-color: rgba(102,126,234,0.15);
     }
-    .progress-bar-fill::after {
+    .kpi-item {
+      padding: 22px 16px;
+      text-align: center;
+      position: relative;
+      transition: background 0.2s;
+      cursor: default;
+    }
+    .kpi-item:not(:last-child)::after {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
       right: 0;
-      bottom: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-      animation: shimmer 2s infinite;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: rgba(255,255,255,0.05);
     }
-    @keyframes shimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+    .kpi-item:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .kpi-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin: 0 auto 8px;
+    }
+    .kpi-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .kpi-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
 
     /* Composition Bar */
-    .composition-card {
-      background: #1a1a2e;
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 30px;
-      border: 1px solid #2a2a4a;
-    }
-    .composition-card h3 {
-      font-size: 0.95rem;
-      color: #aaa;
-      margin-bottom: 16px;
+    .comp-bar-wrap {
+      padding: 24px 28px;
     }
     .comp-bar {
       display: flex;
-      height: 32px;
-      border-radius: 8px;
+      height: 8px;
+      border-radius: 4px;
       overflow: hidden;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+      background: #1a1a35;
     }
     .comp-bar .segment {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
+      height: 100%;
       transition: width 1s ease-out;
+    }
+    .comp-bar .segment:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+    .comp-bar .segment:last-child {
+      border-radius: 0 4px 4px 0;
     }
     .comp-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
       justify-content: center;
     }
     .comp-legend-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.8rem;
-      color: #aaa;
+      font-size: 0.75rem;
+      color: #777;
+      font-weight: 500;
     }
     .comp-legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
-    /* Asset Cards */
-    .assets-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 16px;
-      margin-bottom: 30px;
+    /* Chart Section */
+    .chart-card {
+      padding: 28px;
     }
-    .asset-card {
-      background: #1a1a2e;
-      border-radius: 14px;
-      padding: 20px;
-      border: 1px solid #2a2a4a;
-      text-align: center;
-    }
-    .asset-card .icon {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-    .asset-card .label {
-      font-size: 0.85rem;
-      color: #888;
-      margin-bottom: 4px;
-    }
-    .asset-card .value {
-      font-size: 1.3rem;
-      font-weight: 700;
-    }
-    .asset-card .asset-percent {
-      font-size: 0.8rem;
-      color: #888;
-      margin-top: 4px;
-    }
-
-    /* History */
-    .history-card {
-      background: #1a1a2e;
-      border-radius: 16px;
-      padding: 24px;
-      border: 1px solid #2a2a4a;
-    }
-    .history-header {
+    .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
-    .history-card h3 {
-      font-size: 0.95rem;
+    .chart-title {
+      font-size: 0.85rem;
+      font-weight: 600;
       color: #aaa;
     }
     .tab-group {
       display: flex;
-      gap: 4px;
-      background: #2a2a4a;
+      gap: 2px;
+      background: rgba(255,255,255,0.04);
       border-radius: 8px;
       padding: 3px;
     }
     .tab {
       background: none;
       border: none;
-      color: #888;
-      font-size: 0.8rem;
+      color: #666;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
       font-weight: 600;
-      padding: 4px 14px;
+      padding: 5px 16px;
       border-radius: 6px;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab:hover {
+      color: #aaa;
     }
     .tab.active {
       background: #667eea;
       color: #fff;
+      box-shadow: 0 2px 8px rgba(102,126,234,0.3);
     }
-    .history-chart-wrapper {
+    .chart-wrap {
       position: relative;
       width: 100%;
-      height: 400px;
+      height: 420px;
     }
 
-    .updated {
+    /* Footer */
+    .footer {
       text-align: center;
-      color: #555;
-      font-size: 0.8rem;
-      margin-top: 20px;
+      color: #444;
+      font-size: 0.7rem;
+      font-weight: 400;
+      margin-top: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      body { padding: 24px 16px 40px; }
+      .hero { padding: 28px 20px; }
+      .progress-ring-wrap { width: 160px; height: 160px; }
+      .ring-percent .value { font-size: 2.2rem; }
+      .kpi-row { grid-template-columns: repeat(3, 1fr); }
+      .kpi-item:nth-child(3)::after { display: none; }
+      .kpi-item:nth-child(4), .kpi-item:nth-child(5) {
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+      .chart-wrap { height: 320px; }
     }
   </style>
 </head>
 <body>
-  <h1>Immigration Finance Tracker</h1>
-  <p class="subtitle">미국 이민 목표 자산 추적</p>
-
   <div class="container">
-    <!-- Main Progress -->
-    <div class="main-progress">
-      <div class="percent-display" id="percentDisplay">0%</div>
-      <div class="amount-display" style="display:none">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <h1>Finance Tracker</h1>
+        <div class="subtitle">Immigration Goal Progress</div>
+      </div>
+      <div class="header-right" id="lastUpdated"></div>
+    </div>
+
+    <!-- Hero: Progress Ring -->
+    <div class="card hero">
+      <div class="card-label">Goal Progress</div>
+      <div class="progress-ring-wrap">
+        <svg viewBox="0 0 200 200" width="200" height="200">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="100" cy="100" r="85"/>
+          <circle class="ring-fill" id="progressRing" cx="100" cy="100" r="85"
+            stroke-dasharray="534.07" stroke-dashoffset="534.07"/>
+        </svg>
+        <div class="ring-percent">
+          <div class="value" id="percentDisplay">0%</div>
+          <div class="label">of target</div>
+        </div>
+      </div>
+      <div class="amount-display">
         <span class="current" id="currentAmount">$0</span>
         <span> / </span>
         <span id="goalAmount">$1,000,000</span>
       </div>
-      <div class="progress-bar-container">
-        <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
-      </div>
     </div>
 
+    <!-- KPI Stats Row -->
+    <div class="kpi-row" id="kpiRow"></div>
+
     <!-- Composition Bar -->
-    <div class="composition-card">
-      <h3>자산 구성 비율</h3>
+    <div class="card comp-bar-wrap">
+      <div class="card-label">Asset Allocation</div>
       <div class="comp-bar" id="compBar"></div>
       <div class="comp-legend" id="compLegend"></div>
     </div>
 
-    <!-- Asset Cards -->
-    <div class="assets-grid" id="assetsGrid"></div>
-
-    <!-- History -->
-    <div class="history-card">
-      <div class="history-header">
-        <h3>자산 추이</h3>
+    <!-- Chart -->
+    <div class="card chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Portfolio Trend</div>
         <div class="tab-group">
           <button class="tab active" data-range="1m">1M</button>
           <button class="tab" data-range="all">All</button>
         </div>
       </div>
-      <div class="history-chart-wrapper">
+      <div class="chart-wrap">
         <canvas id="historyChart"></canvas>
       </div>
     </div>
 
-    <p class="updated" id="lastUpdated"></p>
+    <div class="footer" id="footerUpdated"></div>
   </div>
 
   <script>
-    const ICONS = {
-      cash: '',
-      stocks: '',
-      crypto: '',
-      realestate: '',
-      pension: ''
-    };
-
     function formatUSD(n) {
       return '$' + n.toLocaleString('en-US');
     }
@@ -295,25 +379,29 @@
       const total = entries.reduce((s, [, v]) => s + v.amount, 0);
       const percent = goal.amount > 0 ? (total / goal.amount * 100) : 0;
 
-      // Main progress
+      // Progress ring
       document.getElementById('percentDisplay').textContent = percent.toFixed(1) + '%';
       document.getElementById('currentAmount').textContent = formatUSD(total);
       document.getElementById('goalAmount').textContent = formatUSD(goal.amount);
-      document.getElementById('progressBar').style.width = Math.min(percent, 100) + '%';
+      const circumference = 2 * Math.PI * 85; // 534.07
+      const offset = circumference * (1 - Math.min(percent, 100) / 100);
+      setTimeout(() => {
+        document.getElementById('progressRing').style.strokeDashoffset = offset;
+      }, 100);
 
-      // Asset cards
-      const grid = document.getElementById('assetsGrid');
-      grid.innerHTML = '';
+      // KPI row
+      const kpiRow = document.getElementById('kpiRow');
+      kpiRow.innerHTML = '';
       entries.forEach(([key, asset]) => {
-        const card = document.createElement('div');
-        card.className = 'asset-card';
         const pct = goal.amount > 0 ? (asset.amount / goal.amount * 100).toFixed(1) : '0.0';
-        const icon = ICONS[key] || '';
-        card.innerHTML = `
-          <div class="label">${asset.label}</div>
-          <div class="value" style="color:${asset.color}">${pct}%</div>
+        const item = document.createElement('div');
+        item.className = 'kpi-item';
+        item.innerHTML = `
+          <div class="kpi-dot" style="background:${asset.color}"></div>
+          <div class="kpi-label">${asset.label}</div>
+          <div class="kpi-value" style="color:${asset.color}">${pct}%</div>
         `;
-        grid.appendChild(card);
+        kpiRow.appendChild(item);
       });
 
       // Composition bar
@@ -326,18 +414,17 @@
           seg.className = 'segment';
           seg.style.width = pct + '%';
           seg.style.backgroundColor = asset.color;
-          seg.textContent = pct >= 5 ? pct.toFixed(1) + '%' : '';
           seg.title = asset.label + ' ' + pct.toFixed(1) + '%';
           compBar.appendChild(seg);
         }
         const item = document.createElement('div');
         item.className = 'comp-legend-item';
-        const pctGoal = goal.amount > 0 ? (asset.amount / goal.amount * 100).toFixed(1) : '0.0';
-        item.innerHTML = '<div class="comp-legend-dot" style="background:' + asset.color + '"></div>' + asset.label + ' ' + pctGoal + '%';
+        const pctOfTotal = total > 0 ? (asset.amount / total * 100).toFixed(1) : '0.0';
+        item.innerHTML = '<div class="comp-legend-dot" style="background:' + asset.color + '"></div>' + asset.label + ' ' + pctOfTotal + '%';
         compLegend.appendChild(item);
       });
 
-      // Chart state
+      // Chart
       let historyChart = null;
       const milestones = data.milestones || [];
       const currentStocks = assets.stocks.amount;
@@ -394,7 +481,7 @@
         const h = history || [];
         const labels = [], cash = [], stock = [], crypto = [], re = [], pen = [], total = [];
         h.forEach(entry => {
-          labels.push(entry.date.substring(5)); // MM-DD
+          labels.push(entry.date.substring(5));
           total.push(entry.total);
           cash.push(entry.cash != null ? entry.cash : cashAmount);
           stock.push(entry.stocks != null ? entry.stocks : currentStocks);
@@ -422,7 +509,7 @@
               label: {
                 display: true, content: m.label, position: 'end',
                 backgroundColor: color, color: '#fff',
-                font: { size: 10, weight: 'bold' },
+                font: { size: 10, weight: 'bold', family: 'Inter' },
                 padding: { top: 3, bottom: 3, left: 6, right: 6 },
                 borderRadius: 4,
                 yAdjust: -(20 + i * 22)
@@ -431,11 +518,12 @@
           });
           annotations['goalLine'] = {
             type: 'line', yMin: goal.amount, yMax: goal.amount,
-            borderColor: 'rgba(255, 82, 82, 0.6)', borderWidth: 2, borderDash: [8, 4],
+            borderColor: 'rgba(255, 82, 82, 0.5)', borderWidth: 1.5, borderDash: [8, 4],
             label: {
-              display: true, content: 'GOAL 100%', position: 'end',
-              backgroundColor: 'rgba(255, 82, 82, 0.8)', color: '#fff',
-              font: { size: 11 }, padding: { top: 3, bottom: 3, left: 6, right: 6 }, borderRadius: 4
+              display: true, content: 'GOAL', position: 'end',
+              backgroundColor: 'rgba(255, 82, 82, 0.7)', color: '#fff',
+              font: { size: 10, family: 'Inter' },
+              padding: { top: 2, bottom: 2, left: 6, right: 6 }, borderRadius: 4
             }
           };
         }
@@ -445,11 +533,11 @@
           data: {
             labels: d.labels,
             datasets: [
-              { label: 'Total', data: d.total, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.08)', fill: true, tension: 0.3, pointRadius: isAll ? 0 : 3, borderWidth: 3 },
-              { label: assets.realestate.label, data: d.re, borderColor: assets.realestate.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
-              { label: assets.stocks.label, data: d.stock, borderColor: assets.stocks.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
-              { label: assets.crypto.label, data: d.crypto, borderColor: assets.crypto.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false },
-              { label: assets.pension.label, data: d.pen, borderColor: assets.pension.color, tension: 0.3, pointRadius: isAll ? 0 : 2, borderWidth: 1.5, fill: false }
+              { label: 'Total', data: d.total, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.06)', fill: true, tension: 0.4, pointRadius: isAll ? 0 : 2, borderWidth: 2.5, pointBackgroundColor: '#667eea' },
+              { label: assets.realestate.label, data: d.re, borderColor: assets.realestate.color, tension: 0.4, pointRadius: isAll ? 0 : 1.5, borderWidth: 1.5, fill: false },
+              { label: assets.stocks.label, data: d.stock, borderColor: assets.stocks.color, tension: 0.4, pointRadius: isAll ? 0 : 1.5, borderWidth: 1.5, fill: false },
+              { label: assets.crypto.label, data: d.crypto, borderColor: assets.crypto.color, tension: 0.4, pointRadius: isAll ? 0 : 1.5, borderWidth: 1.5, fill: false },
+              { label: assets.pension.label, data: d.pen, borderColor: assets.pension.color, tension: 0.4, pointRadius: isAll ? 0 : 1.5, borderWidth: 1.5, fill: false }
             ]
           },
           options: {
@@ -459,42 +547,54 @@
             scales: {
               x: {
                 ticks: {
-                  color: '#888', maxRotation: 45,
+                  color: '#555', font: { size: 11, family: 'Inter' }, maxRotation: 0,
                   callback: isAll
                     ? function(val, idx) { const lbl = this.getLabelForValue(idx); return lbl && lbl.endsWith('-01') ? lbl.substring(0, 4) : ''; }
                     : function(val, idx) { return this.getLabelForValue(idx); },
-                  maxTicksLimit: isAll ? 14 : 10
+                  maxTicksLimit: isAll ? 12 : 8
                 },
-                grid: { color: '#2a2a4a' }
+                grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }
               },
               y: {
                 min: 0,
-                ticks: { color: '#888', callback: v => goal.amount > 0 ? Math.round(v / goal.amount * 100) + '%' : v },
-                grid: { color: '#2a2a4a' }
+                ticks: {
+                  color: '#555', font: { size: 11, family: 'Inter' },
+                  callback: v => goal.amount > 0 ? Math.round(v / goal.amount * 100) + '%' : v
+                },
+                grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }
               }
             },
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#aaa', padding: 12, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' },
+                labels: {
+                  color: '#777', padding: 16,
+                  font: { size: 11, family: 'Inter', weight: '500' },
+                  usePointStyle: true, pointStyle: 'circle', pointStyleWidth: 8
+                },
                 onClick: function(e, legendItem, legend) {
                   const ci = legend.chart;
                   const idx = legendItem.datasetIndex;
                   const allHidden = ci.data.datasets.every((ds, i) => i === idx ? false : !ci.isDatasetVisible(i));
                   if (allHidden) {
-                    // All others hidden = clicking same one again → show all
                     ci.data.datasets.forEach((_, i) => { ci.setDatasetVisibility(i, true); });
                   } else {
-                    // Hide all except clicked
                     ci.data.datasets.forEach((_, i) => { ci.setDatasetVisibility(i, i === idx); });
                   }
                   ci.update();
                 }
               },
               tooltip: {
+                backgroundColor: 'rgba(17,17,40,0.95)',
+                borderColor: 'rgba(255,255,255,0.08)',
+                borderWidth: 1,
+                titleFont: { family: 'Inter', size: 12, weight: '600' },
+                bodyFont: { family: 'Inter', size: 11 },
+                padding: 12,
+                cornerRadius: 8,
                 callbacks: {
                   title: ctx => ctx[0].label,
-                  label: ctx => ctx.dataset.label + ': ' + (goal.amount > 0 ? (ctx.raw / goal.amount * 100).toFixed(1) : 0) + '%'
+                  label: ctx => ' ' + ctx.dataset.label + '  ' + (goal.amount > 0 ? (ctx.raw / goal.amount * 100).toFixed(1) : 0) + '%'
                 }
               },
               annotation: { annotations }
@@ -512,10 +612,11 @@
         });
       });
 
-      // Default: 1M view
       createChart('1m');
 
-      document.getElementById('lastUpdated').textContent = '마지막 업데이트: ' + lastUpdated;
+      // Footer
+      document.getElementById('lastUpdated').textContent = 'Updated ' + lastUpdated;
+      document.getElementById('footerUpdated').textContent = 'Last synced ' + lastUpdated;
     }
 
     loadData().then(render);
