@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Immigration Finance Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -165,7 +166,7 @@
     .history-chart-wrapper {
       position: relative;
       width: 100%;
-      height: 200px;
+      height: 300px;
     }
 
     .updated {
@@ -335,51 +336,99 @@
         }
       });
 
-      // History chart
-      if (history && history.length > 0) {
-        new Chart(document.getElementById('historyChart'), {
-          type: 'line',
-          data: {
-            labels: history.map(h => h.date),
-            datasets: [{
-              label: '총 자산 (USD)',
-              data: history.map(h => h.total),
-              borderColor: '#667eea',
-              backgroundColor: 'rgba(102, 126, 234, 0.1)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 4,
-              pointBackgroundColor: '#667eea'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: {
-                ticks: { color: '#888' },
-                grid: { color: '#2a2a4a' }
-              },
-              y: {
-                ticks: { color: '#888', callback: v => formatUSD(v) },
-                grid: { color: '#2a2a4a' }
-              }
-            },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: { label: ctx => formatUSD(ctx.raw) }
-              }
-            }
-          }
-        });
-      } else {
-        const ctx = document.getElementById('historyChart').getContext('2d');
-        ctx.fillStyle = '#555';
-        ctx.font = '14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('아직 기록이 없습니다', ctx.canvas.width / 2, ctx.canvas.height / 2);
+      // Timeline chart with milestones
+      const milestones = data.milestones || [];
+      const currentYear = new Date().getFullYear();
+
+      // Build timeline: yearly from 2000 to current year
+      const timelineLabels = [];
+      const timelineData = [];
+      for (let y = 2000; y <= currentYear; y++) {
+        timelineLabels.push(String(y));
+        // Find history entry for this year
+        const entry = history.find(h => h.date.startsWith(String(y)));
+        if (y === currentYear && !entry) {
+          timelineData.push(total);
+        } else if (entry) {
+          timelineData.push(entry.total);
+        } else {
+          timelineData.push(null);
+        }
       }
+
+      // Build annotation lines for milestones
+      const MILESTONE_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0'];
+      const annotations = {};
+      milestones.forEach((m, i) => {
+        const idx = m.year - 2000;
+        const color = MILESTONE_COLORS[i % MILESTONE_COLORS.length];
+        annotations['line' + i] = {
+          type: 'line',
+          xMin: idx,
+          xMax: idx,
+          borderColor: color,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          label: {
+            display: true,
+            content: m.label,
+            position: 'start',
+            backgroundColor: color,
+            color: '#fff',
+            font: { size: 11, weight: 'bold' },
+            padding: { top: 4, bottom: 4, left: 8, right: 8 },
+            borderRadius: 4,
+            yAdjust: i % 2 === 0 ? -10 : 20
+          }
+        };
+      });
+
+      new Chart(document.getElementById('historyChart'), {
+        type: 'line',
+        data: {
+          labels: timelineLabels,
+          datasets: [{
+            label: '총 자산 (USD)',
+            data: timelineData,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: timelineData.map(v => v !== null ? 6 : 0),
+            pointBackgroundColor: '#667eea',
+            spanGaps: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                color: '#888',
+                maxRotation: 45,
+                callback: function(val, idx) {
+                  const year = parseInt(this.getLabelForValue(idx));
+                  return year % 2 === 0 ? year : '';
+                }
+              },
+              grid: { color: '#2a2a4a' }
+            },
+            y: {
+              min: 0,
+              ticks: { color: '#888', callback: v => formatUSD(v) },
+              grid: { color: '#2a2a4a' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ctx.raw !== null ? formatUSD(ctx.raw) : '' }
+            },
+            annotation: { annotations }
+          }
+        }
+      });
 
       document.getElementById('lastUpdated').textContent = '마지막 업데이트: ' + lastUpdated;
     }
