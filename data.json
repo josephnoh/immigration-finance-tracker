@@ -1,0 +1,31 @@
+{
+  "goal": {
+    "amount": 1000000,
+    "currency": "USD",
+    "description": "미국 이민 목표 금융자산"
+  },
+  "assets": {
+    "cash": {
+      "label": "현금",
+      "amount": 0,
+      "color": "#4CAF50"
+    },
+    "stocks": {
+      "label": "주식",
+      "amount": 0,
+      "color": "#2196F3"
+    },
+    "crypto": {
+      "label": "암호화폐",
+      "amount": 0,
+      "color": "#FF9800"
+    },
+    "realestate": {
+      "label": "부동산",
+      "amount": 0,
+      "color": "#9C27B0"
+    }
+  },
+  "history": [],
+  "lastUpdated": "2026-03-16"
+}

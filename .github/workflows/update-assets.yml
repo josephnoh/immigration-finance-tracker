@@ -1,0 +1,62 @@
+name: Update Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      cash:
+        description: '현금 (USD)'
+        required: true
+        type: string
+      stocks:
+        description: '주식 (USD)'
+        required: true
+        type: string
+      crypto:
+        description: '암호화폐 (USD)'
+        required: true
+        type: string
+      realestate:
+        description: '부동산 (USD)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update data.json
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          CASH=${{ github.event.inputs.cash }}
+          STOCKS=${{ github.event.inputs.stocks }}
+          CRYPTO=${{ github.event.inputs.crypto }}
+          REALESTATE=${{ github.event.inputs.realestate }}
+          TOTAL=$(echo "$CASH + $STOCKS + $CRYPTO + $REALESTATE" | bc)
+
+          # Update asset amounts and lastUpdated
+          jq --argjson cash "$CASH" \
+             --argjson stocks "$STOCKS" \
+             --argjson crypto "$CRYPTO" \
+             --argjson realestate "$REALESTATE" \
+             --arg date "$DATE" \
+             --argjson total "$TOTAL" \
+             '.assets.cash.amount = $cash |
+              .assets.stocks.amount = $stocks |
+              .assets.crypto.amount = $crypto |
+              .assets.realestate.amount = $realestate |
+              .lastUpdated = $date |
+              .history += [{"date": $date, "total": $total}]' \
+             data.json > tmp.json && mv tmp.json data.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Update assets: $(date +%Y-%m-%d)"
+          git push

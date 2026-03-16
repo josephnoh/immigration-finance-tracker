@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Immigration Finance Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f23;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 40px;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    /* Main Progress */
+    .main-progress {
+      background: #1a1a2e;
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      text-align: center;
+      border: 1px solid #2a2a4a;
+    }
+    .percent-display {
+      font-size: 5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .amount-display {
+      font-size: 1.1rem;
+      color: #aaa;
+      margin-bottom: 24px;
+    }
+    .amount-display .current {
+      color: #667eea;
+      font-weight: 600;
+    }
+    .progress-bar-container {
+      background: #2a2a4a;
+      border-radius: 12px;
+      height: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 1.5s ease-out;
+      position: relative;
+    }
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+      animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Charts Row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 600px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #2a2a4a;
+    }
+    .chart-card h3 {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      max-height: 250px;
+    }
+
+    /* Asset Cards */
+    .assets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .asset-card {
+      background: #1a1a2e;
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid #2a2a4a;
+      text-align: center;
+    }
+    .asset-card .icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    .asset-card .label {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .asset-card .value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .asset-card .asset-percent {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* History */
+    .history-card {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #2a2a4a;
+    }
+    .history-card h3 {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+    .history-chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 200px;
+    }
+
+    .updated {
+      text-align: center;
+      color: #555;
+      font-size: 0.8rem;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Immigration Finance Tracker</h1>
+  <p class="subtitle">미국 이민 목표 자산 추적</p>
+
+  <div class="container">
+    <!-- Main Progress -->
+    <div class="main-progress">
+      <div class="percent-display" id="percentDisplay">0%</div>
+      <div class="amount-display">
+        <span class="current" id="currentAmount">$0</span>
+        <span> / </span>
+        <span id="goalAmount">$1,000,000</span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>자산 구성</h3>
+        <div class="chart-wrapper">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>카테고리별 달성률</h3>
+        <div class="chart-wrapper">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Asset Cards -->
+    <div class="assets-grid" id="assetsGrid"></div>
+
+    <!-- History -->
+    <div class="history-card">
+      <h3>자산 추이</h3>
+      <div class="history-chart-wrapper">
+        <canvas id="historyChart"></canvas>
+      </div>
+    </div>
+
+    <p class="updated" id="lastUpdated"></p>
+  </div>
+
+  <script>
+    const ICONS = {
+      cash: '💵',
+      stocks: '📈',
+      crypto: '₿',
+      realestate: '🏠'
+    };
+
+    function formatUSD(n) {
+      return '$' + n.toLocaleString('en-US');
+    }
+
+    async function loadData() {
+      const res = await fetch('data.json?' + Date.now());
+      return res.json();
+    }
+
+    function render(data) {
+      const { goal, assets, history, lastUpdated } = data;
+      const entries = Object.entries(assets);
+      const total = entries.reduce((s, [, v]) => s + v.amount, 0);
+      const percent = goal.amount > 0 ? (total / goal.amount * 100) : 0;
+
+      // Main progress
+      document.getElementById('percentDisplay').textContent = percent.toFixed(1) + '%';
+      document.getElementById('currentAmount').textContent = formatUSD(total);
+      document.getElementById('goalAmount').textContent = formatUSD(goal.amount);
+      document.getElementById('progressBar').style.width = Math.min(percent, 100) + '%';
+
+      // Asset cards
+      const grid = document.getElementById('assetsGrid');
+      grid.innerHTML = '';
+      entries.forEach(([key, asset]) => {
+        const card = document.createElement('div');
+        card.className = 'asset-card';
+        const pct = goal.amount > 0 ? (asset.amount / goal.amount * 100).toFixed(1) : '0.0';
+        card.innerHTML = `
+          <div class="icon">${ICONS[key] || '💰'}</div>
+          <div class="label">${asset.label}</div>
+          <div class="value" style="color:${asset.color}">${formatUSD(asset.amount)}</div>
+          <div class="asset-percent">목표의 ${pct}%</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Doughnut chart
+      const labels = entries.map(([, v]) => v.label);
+      const amounts = entries.map(([, v]) => v.amount);
+      const colors = entries.map(([, v]) => v.color);
+      const hasData = amounts.some(a => a > 0);
+
+      new Chart(document.getElementById('doughnutChart'), {
+        type: 'doughnut',
+        data: {
+          labels: hasData ? labels : ['데이터 없음'],
+          datasets: [{
+            data: hasData ? amounts : [1],
+            backgroundColor: hasData ? colors : ['#2a2a4a'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#aaa', padding: 12, font: { size: 12 } }
+            }
+          }
+        }
+      });
+
+      // Bar chart
+      new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '달성률 (%)',
+            data: entries.map(([, v]) => goal.amount > 0 ? (v.amount / goal.amount * 100) : 0),
+            backgroundColor: colors,
+            borderRadius: 6,
+            barThickness: 30
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          indexAxis: 'y',
+          scales: {
+            x: {
+              max: 100,
+              ticks: { color: '#888', callback: v => v + '%' },
+              grid: { color: '#2a2a4a' }
+            },
+            y: {
+              ticks: { color: '#aaa' },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ctx.raw.toFixed(1) + '%' }
+            }
+          }
+        }
+      });
+
+      // History chart
+      if (history && history.length > 0) {
+        new Chart(document.getElementById('historyChart'), {
+          type: 'line',
+          data: {
+            labels: history.map(h => h.date),
+            datasets: [{
+              label: '총 자산 (USD)',
+              data: history.map(h => h.total),
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#667eea'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: { color: '#888' },
+                grid: { color: '#2a2a4a' }
+              },
+              y: {
+                ticks: { color: '#888', callback: v => formatUSD(v) },
+                grid: { color: '#2a2a4a' }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: { label: ctx => formatUSD(ctx.raw) }
+              }
+            }
+          }
+        });
+      } else {
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        ctx.fillStyle = '#555';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('아직 기록이 없습니다', ctx.canvas.width / 2, ctx.canvas.height / 2);
+      }
+
+      document.getElementById('lastUpdated').textContent = '마지막 업데이트: ' + lastUpdated;
+    }
+
+    loadData().then(render);
+  </script>
+</body>
+</html>
