@@ -8,11 +8,15 @@ on:
         required: true
         type: string
       stocks:
-        description: '주식 (USD)'
+        description: '주식 (종목:수량, 예: AAPL:10,TSLA:5,NVDA:20)'
         required: true
         type: string
-      crypto:
-        description: '암호화폐 (USD)'
+      btc_qty:
+        description: 'BTC 수량 (예: 0.5)'
+        required: true
+        type: string
+      eth_qty:
+        description: 'ETH 수량 (예: 10)'
         required: true
         type: string
       realestate:
@@ -29,25 +33,88 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update data.json
+      - name: Fetch prices and update data.json
         run: |
           DATE=$(date +%Y-%m-%d)
           CASH=${{ github.event.inputs.cash }}
-          STOCKS=${{ github.event.inputs.stocks }}
-          CRYPTO=${{ github.event.inputs.crypto }}
           REALESTATE=${{ github.event.inputs.realestate }}
-          TOTAL=$(echo "$CASH + $STOCKS + $CRYPTO + $REALESTATE" | bc)
+          BTC_QTY=${{ github.event.inputs.btc_qty }}
+          ETH_QTY=${{ github.event.inputs.eth_qty }}
+          STOCKS_INPUT="${{ github.event.inputs.stocks }}"
 
-          # Update asset amounts and lastUpdated
+          # Fetch crypto prices from CoinGecko
+          echo "Fetching crypto prices..."
+          CRYPTO_PRICES=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd")
+          BTC_PRICE=$(echo "$CRYPTO_PRICES" | jq '.bitcoin.usd')
+          ETH_PRICE=$(echo "$CRYPTO_PRICES" | jq '.ethereum.usd')
+          BTC_VALUE=$(echo "$BTC_QTY * $BTC_PRICE" | bc -l)
+          ETH_VALUE=$(echo "$ETH_QTY * $ETH_PRICE" | bc -l)
+          CRYPTO_TOTAL=$(echo "$BTC_VALUE + $ETH_VALUE" | bc -l)
+          echo "BTC: $BTC_QTY x $BTC_PRICE = $BTC_VALUE"
+          echo "ETH: $ETH_QTY x $ETH_PRICE = $ETH_VALUE"
+
+          # Fetch stock prices from Yahoo Finance
+          echo "Fetching stock prices..."
+          STOCKS_TOTAL=0
+          STOCK_DETAILS="[]"
+
+          IFS=',' read -ra PAIRS <<< "$STOCKS_INPUT"
+          for pair in "${PAIRS[@]}"; do
+            TICKER=$(echo "$pair" | cut -d: -f1 | tr -d ' ' | tr '[:lower:]' '[:upper:]')
+            QTY=$(echo "$pair" | cut -d: -f2 | tr -d ' ')
+
+            PRICE=$(curl -s "https://query1.finance.yahoo.com/v8/finance/chart/$TICKER" \
+              -H "User-Agent: Mozilla/5.0" | \
+              jq '.chart.result[0].meta.regularMarketPrice // 0')
+
+            VALUE=$(echo "$QTY * $PRICE" | bc -l)
+            STOCKS_TOTAL=$(echo "$STOCKS_TOTAL + $VALUE" | bc -l)
+            echo "$TICKER: $QTY x $PRICE = $VALUE"
+
+            STOCK_DETAILS=$(echo "$STOCK_DETAILS" | jq \
+              --arg t "$TICKER" \
+              --argjson q "$QTY" \
+              --argjson p "$PRICE" \
+              --argjson v "$VALUE" \
+              '. += [{"ticker": $t, "qty": $q, "price": $p, "value": $v}]')
+          done
+
+          # Round values
+          STOCKS_TOTAL=$(printf "%.2f" "$STOCKS_TOTAL")
+          CRYPTO_TOTAL=$(printf "%.2f" "$CRYPTO_TOTAL")
+          BTC_VALUE=$(printf "%.2f" "$BTC_VALUE")
+          ETH_VALUE=$(printf "%.2f" "$ETH_VALUE")
+          TOTAL=$(echo "$CASH + $STOCKS_TOTAL + $CRYPTO_TOTAL + $REALESTATE" | bc)
+
+          echo "=== Summary ==="
+          echo "Cash: $CASH"
+          echo "Stocks: $STOCKS_TOTAL"
+          echo "Crypto: $CRYPTO_TOTAL"
+          echo "Real Estate: $REALESTATE"
+          echo "Total: $TOTAL"
+
+          # Update data.json
           jq --argjson cash "$CASH" \
-             --argjson stocks "$STOCKS" \
-             --argjson crypto "$CRYPTO" \
+             --argjson stocks "$STOCKS_TOTAL" \
+             --argjson crypto "$CRYPTO_TOTAL" \
              --argjson realestate "$REALESTATE" \
              --arg date "$DATE" \
              --argjson total "$TOTAL" \
+             --argjson stock_details "$STOCK_DETAILS" \
+             --argjson btc_qty "$BTC_QTY" \
+             --argjson eth_qty "$ETH_QTY" \
+             --argjson btc_price "$BTC_PRICE" \
+             --argjson eth_price "$ETH_PRICE" \
+             --argjson btc_value "$BTC_VALUE" \
+             --argjson eth_value "$ETH_VALUE" \
              '.assets.cash.amount = $cash |
               .assets.stocks.amount = $stocks |
+              .assets.stocks.holdings = $stock_details |
               .assets.crypto.amount = $crypto |
+              .assets.crypto.holdings = {
+                "BTC": {"qty": $btc_qty, "price": $btc_price, "value": $btc_value},
+                "ETH": {"qty": $eth_qty, "price": $eth_price, "value": $eth_value}
+              } |
               .assets.realestate.amount = $realestate |
               .lastUpdated = $date |
               .history += [{"date": $date, "total": $total}]' \
