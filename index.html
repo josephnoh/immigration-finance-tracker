@@ -404,11 +404,16 @@
         }
         realestateData.push(Math.round(rv));
 
-        // Pension: steady accumulation from 2000 to current
+        // Pension: compound growth from 2000 to current (~7% annual)
         const pStart = monthIdx(2000, 0);
         let pv = 0;
         if (i >= pStart) {
-          pv = lerp(0, currentPension, (i - pStart) / (endIdx - pStart));
+          const t = (i - pStart) / (endIdx - pStart); // 0 to 1
+          // Exponential curve: slow start, accelerating growth
+          const annualRate = 0.07;
+          const totalYears = (endIdx - pStart) / 12;
+          const elapsed = t * totalYears;
+          pv = currentPension * (Math.pow(1 + annualRate, elapsed) - 1) / (Math.pow(1 + annualRate, totalYears) - 1);
         }
         pensionData.push(Math.round(pv));
       }
@@ -544,7 +549,17 @@
             tooltip: {
               callbacks: {
                 title: ctx => ctx[0].label,
-                label: ctx => ctx.dataset.label + ': ' + formatUSD(ctx.raw)
+                label: function(ctx) {
+                  const i = ctx.dataIndex;
+                  const vals = { '현금': cashData[i], '주식': stockData[i], '암호화폐': cryptoData[i], '부동산': realestateData[i], '연금': pensionData[i] };
+                  const v = vals[ctx.dataset.label];
+                  return v !== undefined ? ctx.dataset.label + ': ' + formatUSD(v) : '';
+                },
+                footer: function(items) {
+                  const i = items[0].dataIndex;
+                  const t = cashData[i] + stockData[i] + cryptoData[i] + realestateData[i] + pensionData[i];
+                  return 'Total: ' + formatUSD(t);
+                }
               }
             },
             annotation: { annotations }
