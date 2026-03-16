@@ -13,62 +13,12 @@
     "stocks": {
       "label": "주식",
       "amount": 159558.52,
-      "color": "#7BAAF7",
-      "holdings": [
-        {
-          "ticker": "TSLA",
-          "qty": 162,
-          "price": 391.2,
-          "value": 63374.4
-        },
-        {
-          "ticker": "GOOGL",
-          "qty": 103,
-          "price": 302.28,
-          "value": 31134.84
-        },
-        {
-          "ticker": "AAPL",
-          "qty": 92,
-          "price": 250.12,
-          "value": 23011.04
-        },
-        {
-          "ticker": "LLY",
-          "qty": 23,
-          "price": 985.08,
-          "value": 22656.84
-        },
-        {
-          "ticker": "NFLX",
-          "qty": 140,
-          "price": 95.31,
-          "value": 13343.4
-        },
-        {
-          "ticker": "PLTR",
-          "qty": 40,
-          "price": 150.95,
-          "value": 6038.0
-        }
-      ]
+      "color": "#7BAAF7"
     },
     "crypto": {
       "label": "암호화폐",
       "amount": 96345.6,
-      "color": "#FCAD70",
-      "holdings": {
-        "BTC": {
-          "qty": 1,
-          "price": 73734,
-          "value": 73734.0
-        },
-        "ETH": {
-          "qty": 10,
-          "price": 2261.16,
-          "value": 22611.6
-        }
-      }
+      "color": "#FCAD70"
     },
     "realestate": {
       "label": "부동산",

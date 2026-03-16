@@ -57,13 +57,11 @@ jobs:
           BTC_VALUE=$(echo "$BTC_QTY * $BTC_PRICE" | bc -l)
           ETH_VALUE=$(echo "$ETH_QTY * $ETH_PRICE" | bc -l)
           CRYPTO_TOTAL=$(echo "$BTC_VALUE + $ETH_VALUE" | bc -l)
-          echo "BTC: $BTC_QTY x $BTC_PRICE = $BTC_VALUE"
-          echo "ETH: $ETH_QTY x $ETH_PRICE = $ETH_VALUE"
+          echo "Crypto total: $CRYPTO_TOTAL"
 
           # Fetch stock prices from Yahoo Finance
           echo "Fetching stock prices..."
           STOCKS_TOTAL=0
-          STOCK_DETAILS="[]"
 
           IFS=',' read -ra PAIRS <<< "$STOCKS_INPUT"
           for pair in "${PAIRS[@]}"; do
@@ -77,20 +75,11 @@ jobs:
             VALUE=$(echo "$QTY * $PRICE" | bc -l)
             STOCKS_TOTAL=$(echo "$STOCKS_TOTAL + $VALUE" | bc -l)
             echo "$TICKER: $QTY x $PRICE = $VALUE"
-
-            STOCK_DETAILS=$(echo "$STOCK_DETAILS" | jq \
-              --arg t "$TICKER" \
-              --argjson q "$QTY" \
-              --argjson p "$PRICE" \
-              --argjson v "$VALUE" \
-              '. += [{"ticker": $t, "qty": $q, "price": $p, "value": $v}]')
           done
 
           # Round values
           STOCKS_TOTAL=$(printf "%.2f" "$STOCKS_TOTAL")
           CRYPTO_TOTAL=$(printf "%.2f" "$CRYPTO_TOTAL")
-          BTC_VALUE=$(printf "%.2f" "$BTC_VALUE")
-          ETH_VALUE=$(printf "%.2f" "$ETH_VALUE")
           TOTAL=$(echo "$CASH + $STOCKS_TOTAL + $CRYPTO_TOTAL + $REALESTATE + $PENSION" | bc)
 
           echo "=== Summary ==="
@@ -101,7 +90,7 @@ jobs:
           echo "Pension: $PENSION"
           echo "Total: $TOTAL"
 
-          # Update data.json
+          # Update data.json (no holdings/quantities saved)
           jq --argjson cash "$CASH" \
              --argjson stocks "$STOCKS_TOTAL" \
              --argjson crypto "$CRYPTO_TOTAL" \
@@ -109,26 +98,17 @@ jobs:
              --argjson pension "$PENSION" \
              --arg date "$DATE" \
              --argjson total "$TOTAL" \
-             --argjson stock_details "$STOCK_DETAILS" \
-             --argjson btc_qty "$BTC_QTY" \
-             --argjson eth_qty "$ETH_QTY" \
-             --argjson btc_price "$BTC_PRICE" \
-             --argjson eth_price "$ETH_PRICE" \
-             --argjson btc_value "$BTC_VALUE" \
-             --argjson eth_value "$ETH_VALUE" \
              '.assets.cash.amount = $cash |
               .assets.stocks.amount = $stocks |
-              .assets.stocks.holdings = $stock_details |
               .assets.crypto.amount = $crypto |
-              .assets.crypto.holdings = {
-                "BTC": {"qty": $btc_qty, "price": $btc_price, "value": $btc_value},
-                "ETH": {"qty": $eth_qty, "price": $eth_price, "value": $eth_value}
-              } |
               .assets.realestate.amount = $realestate |
               .assets.pension.amount = $pension |
               .lastUpdated = $date |
-              .history += [{"date": $date, "total": $total}]' \
+              .history += [{"date": $date, "total": $total, "cash": $cash, "stocks": $stocks, "crypto": $crypto, "realestate": $realestate, "pension": $pension}]' \
              data.json > tmp.json && mv tmp.json data.json
+
+          # Update secrets for daily cron (stock holdings + crypto qty)
+          echo "Note: Remember to update GitHub Secrets if holdings changed"
 
       - name: Commit and push
         run: |

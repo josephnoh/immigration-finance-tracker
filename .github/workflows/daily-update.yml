@@ -17,18 +17,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch latest prices and update
+        env:
+          STOCK_HOLDINGS: ${{ secrets.STOCK_HOLDINGS }}
+          BTC_QTY: ${{ secrets.BTC_QTY }}
+          ETH_QTY: ${{ secrets.ETH_QTY }}
         run: |
           DATE=$(date +%Y-%m-%d)
 
-          # Read current holdings from data.json
+          # Read fixed assets from data.json
           CASH=$(jq '.assets.cash.amount' data.json)
           REALESTATE=$(jq '.assets.realestate.amount' data.json)
           PENSION=$(jq '.assets.pension.amount' data.json)
 
-          # Crypto: read quantities, fetch prices
-          BTC_QTY=$(jq '.assets.crypto.holdings.BTC.qty // 0' data.json)
-          ETH_QTY=$(jq '.assets.crypto.holdings.ETH.qty // 0' data.json)
-
+          # Crypto: quantities from secrets, prices from API
           echo "Fetching crypto prices..."
           CRYPTO_PRICES=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd")
           BTC_PRICE=$(echo "$CRYPTO_PRICES" | jq '.bitcoin.usd // 0')
@@ -37,58 +38,46 @@ jobs:
           if [ "$BTC_PRICE" = "0" ] || [ "$BTC_PRICE" = "null" ]; then
             echo "CoinGecko API failed, keeping existing crypto values"
             CRYPTO_TOTAL=$(jq '.assets.crypto.amount' data.json)
-            BTC_VALUE=$(jq '.assets.crypto.holdings.BTC.value // 0' data.json)
-            ETH_VALUE=$(jq '.assets.crypto.holdings.ETH.value // 0' data.json)
-            BTC_PRICE=$(jq '.assets.crypto.holdings.BTC.price // 0' data.json)
-            ETH_PRICE=$(jq '.assets.crypto.holdings.ETH.price // 0' data.json)
           else
             BTC_VALUE=$(echo "$BTC_QTY * $BTC_PRICE" | bc -l)
             ETH_VALUE=$(echo "$ETH_QTY * $ETH_PRICE" | bc -l)
             CRYPTO_TOTAL=$(echo "$BTC_VALUE + $ETH_VALUE" | bc -l)
           fi
-          echo "BTC: $BTC_QTY x $BTC_PRICE = $BTC_VALUE"
-          echo "ETH: $ETH_QTY x $ETH_PRICE = $ETH_VALUE"
+          echo "Crypto total: $CRYPTO_TOTAL"
 
-          # Stocks: read holdings, fetch prices
+          # Stocks: holdings from secrets (TICKER:QTY,TICKER:QTY)
           echo "Fetching stock prices..."
           STOCKS_TOTAL=0
-          STOCK_DETAILS="[]"
-          STOCK_COUNT=$(jq '.assets.stocks.holdings | length // 0' data.json)
 
-          if [ "$STOCK_COUNT" -gt 0 ]; then
-            for idx in $(seq 0 $((STOCK_COUNT - 1))); do
-              TICKER=$(jq -r ".assets.stocks.holdings[$idx].ticker" data.json)
-              QTY=$(jq ".assets.stocks.holdings[$idx].qty" data.json)
+          if [ -n "$STOCK_HOLDINGS" ]; then
+            IFS=',' read -ra PAIRS <<< "$STOCK_HOLDINGS"
+            for pair in "${PAIRS[@]}"; do
+              TICKER=$(echo "$pair" | cut -d: -f1 | tr -d ' ' | tr '[:lower:]' '[:upper:]')
+              QTY=$(echo "$pair" | cut -d: -f2 | tr -d ' ')
 
               PRICE=$(curl -s "https://query1.finance.yahoo.com/v8/finance/chart/$TICKER" \
                 -H "User-Agent: Mozilla/5.0" | \
                 jq '.chart.result[0].meta.regularMarketPrice // 0')
 
               if [ "$PRICE" = "0" ] || [ "$PRICE" = "null" ]; then
-                PRICE=$(jq ".assets.stocks.holdings[$idx].price" data.json)
-                echo "$TICKER: using cached price $PRICE"
+                echo "$TICKER: price fetch failed, skipping"
+                continue
               fi
 
               VALUE=$(echo "$QTY * $PRICE" | bc -l)
               STOCKS_TOTAL=$(echo "$STOCKS_TOTAL + $VALUE" | bc -l)
               echo "$TICKER: $QTY x $PRICE = $VALUE"
-
-              STOCK_DETAILS=$(echo "$STOCK_DETAILS" | jq \
-                --arg t "$TICKER" \
-                --argjson q "$QTY" \
-                --argjson p "$PRICE" \
-                --argjson v "$VALUE" \
-                '. += [{"ticker": $t, "qty": $q, "price": $p, "value": $v}]')
             done
-          else
+          fi
+
+          # If stocks fetch failed entirely, keep existing
+          if [ "$STOCKS_TOTAL" = "0" ]; then
             STOCKS_TOTAL=$(jq '.assets.stocks.amount' data.json)
           fi
 
           # Round values
           STOCKS_TOTAL=$(printf "%.2f" "$STOCKS_TOTAL")
           CRYPTO_TOTAL=$(printf "%.2f" "$CRYPTO_TOTAL")
-          BTC_VALUE=$(printf "%.2f" "$BTC_VALUE")
-          ETH_VALUE=$(printf "%.2f" "$ETH_VALUE")
           TOTAL=$(echo "$CASH + $STOCKS_TOTAL + $CRYPTO_TOTAL + $REALESTATE + $PENSION" | bc)
 
           echo "=== Summary ==="
@@ -99,28 +88,16 @@ jobs:
           echo "Pension: $PENSION"
           echo "Total: $TOTAL"
 
-          # Update data.json
+          # Update data.json (no holdings/quantities saved)
           jq --argjson stocks "$STOCKS_TOTAL" \
              --argjson crypto "$CRYPTO_TOTAL" \
+             --arg date "$DATE" \
+             --argjson total "$TOTAL" \
              --argjson cash "$CASH" \
              --argjson realestate "$REALESTATE" \
              --argjson pension "$PENSION" \
-             --arg date "$DATE" \
-             --argjson total "$TOTAL" \
-             --argjson stock_details "$STOCK_DETAILS" \
-             --argjson btc_qty "$BTC_QTY" \
-             --argjson eth_qty "$ETH_QTY" \
-             --argjson btc_price "$BTC_PRICE" \
-             --argjson eth_price "$ETH_PRICE" \
-             --argjson btc_value "$BTC_VALUE" \
-             --argjson eth_value "$ETH_VALUE" \
              '.assets.stocks.amount = $stocks |
-              .assets.stocks.holdings = $stock_details |
               .assets.crypto.amount = $crypto |
-              .assets.crypto.holdings = {
-                "BTC": {"qty": $btc_qty, "price": $btc_price, "value": $btc_value},
-                "ETH": {"qty": $eth_qty, "price": $eth_price, "value": $eth_value}
-              } |
               .lastUpdated = $date |
               .history += [{"date": $date, "total": $total, "cash": $cash, "stocks": $stocks, "crypto": $crypto, "realestate": $realestate, "pension": $pension}]' \
              data.json > tmp.json && mv tmp.json data.json
