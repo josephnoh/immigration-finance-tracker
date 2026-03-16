@@ -362,10 +362,10 @@
       const cryptoData = [];
       const realestateData = [];
       const pensionData = [];
-      const labels = [];
+      const timeLabels = [];
 
       for (let i = 0; i < totalMonths; i++) {
-        labels.push(toLabel(i));
+        timeLabels.push(toLabel(i));
 
         // Cash: constant
         cashData.push(cashAmount);
@@ -462,7 +462,7 @@
       new Chart(document.getElementById('historyChart'), {
         type: 'line',
         data: {
-          labels: labels,
+          labels: timeLabels,
           datasets: [
             {
               label: '연금',
