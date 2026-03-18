@@ -2,7 +2,7 @@ name: Daily Price Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 매일 09:00 KST (UTC 00:00)
+    - cron: '0 0,12 * * *'  # 매일 09:00, 21:00 KST
   workflow_dispatch:       # 수동 실행도 가능
 
 permissions:
