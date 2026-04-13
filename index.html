@@ -406,7 +406,8 @@
       <div class="chart-header">
         <div class="chart-title">Portfolio Trend</div>
         <div class="tab-group">
-          <button class="tab active" data-range="1m">1M</button>
+          <button class="tab active" data-range="1w">1W</button>
+          <button class="tab" data-range="1m">1M</button>
           <button class="tab" data-range="all">All</button>
         </div>
       </div>
@@ -549,10 +550,26 @@
         return { labels, cash, stock, crypto, re, pen, total };
       }
 
+      function build1WData() {
+        const h = history || [];
+        const recent = h.slice(-7);
+        const labels = [], cash = [], stock = [], crypto = [], re = [], pen = [], total = [];
+        recent.forEach(entry => {
+          labels.push(entry.date.substring(5));
+          total.push(entry.total);
+          cash.push(entry.cash != null ? entry.cash : cashAmount);
+          stock.push(entry.stocks != null ? entry.stocks : currentStocks);
+          crypto.push(entry.crypto != null ? entry.crypto : currentCrypto);
+          re.push(entry.realestate != null ? entry.realestate : currentRealestate);
+          pen.push(entry.pension != null ? entry.pension : currentPension);
+        });
+        return { labels, cash, stock, crypto, re, pen, total };
+      }
+
       function createChart(mode) {
         if (historyChart) { historyChart.destroy(); }
         const isAll = mode === 'all';
-        const d = isAll ? buildAllData() : build1MData();
+        const d = isAll ? buildAllData() : mode === '1w' ? build1WData() : build1MData();
 
         const annotations = {};
         if (isAll) {
@@ -681,7 +698,7 @@
         }
       });
 
-      createChart('1m');
+      createChart('1w');
 
       // Footer
       document.getElementById('lastUpdated').textContent = 'Updated ' + lastUpdated;
