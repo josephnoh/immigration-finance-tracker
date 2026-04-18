@@ -17,7 +17,7 @@
     },
     "crypto": {
       "label": "암호화폐",
-      "amount": 101393.30,
+      "amount": 99844.60,
       "color": "#FCAD70"
     },
     "realestate": {
@@ -929,6 +929,15 @@
       "cash": 1000,
       "stocks": 165755.33,
       "crypto": 101393.30,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-04-18",
+      "total": 667083.93,
+      "cash": 1000,
+      "stocks": 165755.33,
+      "crypto": 99844.60,
       "realestate": 333737,
       "pension": 66747
     }
