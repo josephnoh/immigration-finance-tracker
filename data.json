@@ -12,12 +12,12 @@
     },
     "stocks": {
       "label": "주식",
-      "amount": 158615.75,
+      "amount": 158532.48,
       "color": "#7BAAF7"
     },
     "crypto": {
       "label": "암호화폐",
-      "amount": 82791.40,
+      "amount": 83606.20,
       "color": "#FCAD70"
     },
     "realestate": {
@@ -2747,6 +2747,15 @@
       "cash": 1000,
       "stocks": 158615.75,
       "crypto": 82791.40,
+      "realestate": 333737,
+      "pension": 66747
+    },
+    {
+      "date": "2026-07-29",
+      "total": 643622.68,
+      "cash": 1000,
+      "stocks": 158532.48,
+      "crypto": 83606.20,
       "realestate": 333737,
       "pension": 66747
     }
